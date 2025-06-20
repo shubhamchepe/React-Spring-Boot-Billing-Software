@@ -5,12 +5,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import in.shubhamchepe.billingsoftware.entity.CategoryEntity;
 import in.shubhamchepe.billingsoftware.io.CategoryRequest;
 import in.shubhamchepe.billingsoftware.io.CategoryResponse;
 import in.shubhamchepe.billingsoftware.repository.CategoryRepository;
 import in.shubhamchepe.billingsoftware.service.CategoryService;
+import in.shubhamchepe.billingsoftware.service.FileUploadService;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -20,12 +22,15 @@ public class CategoryServiceImpl implements CategoryService{
 	// we have called this object from Repository to access functions
 	//essential for communicating with database like : save(),find(),findAll()
 	private final CategoryRepository categoryRepository;
+	private final FileUploadService fileUploadService;
 
 	@Override
-	public CategoryResponse add(CategoryRequest request) {
+	public CategoryResponse add(CategoryRequest request, MultipartFile file) {
+		String imgUrl = fileUploadService.uploadFile(file);
 		//we need to convert the object coming from client to map it into database
 		// DataType     Variable  =  MethodToconvert(clientObject)
 		CategoryEntity newCategory = convertToEntity(request);
+		newCategory.setImgUrl(imgUrl);
 		//ConvertedObject = Map to database and save
 		// response from categoryRepository.save() will be stored in newCategory
 		// basically, it is taking response object and sending back to client
@@ -74,9 +79,10 @@ public class CategoryServiceImpl implements CategoryService{
 
 	@Override
 	public void delete(String categoryId) {
-		CategoryEntity category = categoryRepository.findByCategoryId(categoryId)
+		CategoryEntity existingCategory = categoryRepository.findByCategoryId(categoryId)
 		        .orElseThrow(() -> new IllegalArgumentException("Category not found: " + categoryId));
-		    categoryRepository.delete(category);
+		fileUploadService.deleteFile(existingCategory.getImgUrl());
+		    categoryRepository.delete(existingCategory);
 	}
 
 
